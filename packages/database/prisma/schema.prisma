@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  RENTED
+  ARCHIVED
+}
+enum CampaignStatus {
+  DRAFT
+  GENERATING
+  AWAITING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  REJECTED
+  FAILED
+}
+enum ContentType {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  X
+  THREADS
+  BLOG
+  EMAIL
+  REEL
+  CAROUSEL
+}
+enum Platform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  X
+  TIKTOK
+  YOUTUBE
+  THREADS
+}
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+model Tenant {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  website String?
+  autoPublishEnabled Boolean @default(false)
+  brandProfile BrandProfile?
+  properties Property[]
+  campaigns Campaign[]
+  connections SocialConnection[]
+  auditLogs AuditLog[]
+  createdAt DateTime @default(now())
+}
+
+model BrandProfile {
+  id String @id @default(cuid())
+  tenantId String @unique
+  tone String @default("Warm, informed, aspirational")
+  preferredEmojis String[]
+  forbiddenWords String[]
+  primaryColor String @default("#C6A15B")
+  cta String @default("Book a private viewing")
+  promotionBrief String?
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Property {
+  id String @id @default(cuid())
+  tenantId String
+  externalId String
+  title String
+  address String
+  type String
+  status PropertyStatus @default(ACTIVE)
+  price Decimal @db.Decimal(14, 2)
+  currency String @default("USD")
+  bedrooms Int?
+  bathrooms Int?
+  areaSqm Int?
+  amenities Json?
+  images Json?
+  sourcePayload Json
+  sourceHash String
+  campaigns Campaign[]
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  @@unique([tenantId, externalId])
+  @@index([tenantId, status])
+}
+
+model Campaign {
+  id String @id @default(cuid())
+  tenantId String
+  propertyId String
+  status CampaignStatus @default(DRAFT)
+  strategy Json?
+  scheduledFor DateTime?
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  content ContentAsset[]
+  approvals Approval[]
+  analytics AnalyticsSnapshot[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, status])
+}
+
+model ContentAsset {
+  id String @id @default(cuid())
+  campaignId String
+  type ContentType
+  platform Platform?
+  body String
+  metadata Json?
+  version Int @default(1)
+  approvedAt DateTime?
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id String @id @default(cuid())
+  campaignId String
+  reviewerId String
+  decision ApprovalDecision
+  notes String?
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model SocialConnection {
+  id String @id @default(cuid())
+  tenantId String
+  platform Platform
+  accountName String
+  encryptedToken String
+  expiresAt DateTime?
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, platform, accountName])
+}
+
+model AnalyticsSnapshot {
+  id String @id @default(cuid())
+  campaignId String
+  platform Platform
+  impressions Int @default(0)
+  reach Int @default(0)
+  engagements Int @default(0)
+  clicks Int @default(0)
+  capturedAt DateTime @default(now())
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  tenantId String
+  actorId String
+  action String
+  entityType String
+  entityId String
+  metadata Json?
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId, createdAt])
+}

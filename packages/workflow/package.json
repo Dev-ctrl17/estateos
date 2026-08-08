@@ -1,0 +1,8 @@
+{
+  "name": "@estateos/workflow",
+  "private": true,
+  "main": "dist/marketing-graph.js",
+  "types": "dist/marketing-graph.d.ts",
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": { "@langchain/langgraph": "^0.2.51", "openai": "^5.0.0" }
+}
