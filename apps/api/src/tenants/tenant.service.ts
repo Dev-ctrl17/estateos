@@ -87,7 +87,7 @@ export class TenantService {
       campaigns,
       metrics: {
         activeProperties: properties.filter(
-          (property) => property.status === "ACTIVE",
+          (property: { status: string }) => property.status === "ACTIVE",
         ).length,
         awaitingApproval: approvals,
         totalCampaigns: campaigns.length,
