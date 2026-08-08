@@ -6,4 +6,5 @@ coverage/
 .env.local
 !.env.example
 .npm-cache/
+.pnpm-store/
 Microsoft/

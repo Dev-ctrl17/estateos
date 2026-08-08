@@ -28,8 +28,21 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  app.enableCors({ origin: process.env.WEB_URL ?? "http://localhost:3000", credentials: true });
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? "http://localhost:3000" });
+  const allowedOrigins = new Set(
+    [process.env.WEB_URL, process.env.WEB_ORIGIN, "http://localhost:3000"]
+      .filter(Boolean)
+      .map((origin) => origin!.replace(/\/$/, "")),
+  );
+  app.enableCors({
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin.replace(/\/$/, ""))) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
+  });
   app.setGlobalPrefix("v1");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.listen(process.env.PORT ?? 4000);
