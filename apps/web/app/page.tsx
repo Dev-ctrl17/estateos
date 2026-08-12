@@ -37,15 +37,24 @@ type Dashboard = {
   };
 };
 async function request(path: string, options?: RequestInit) {
-  const response = await fetch(`${api}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!response.ok)
-    throw new Error(
-      (await response.json().catch(() => null))?.message ?? "Request failed",
-    );
-  return response.json();
+  try {
+    const response = await fetch(`${api}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      throw new Error(
+        err?.message ?? err?.error ?? `Server error (${response.status})`
+      );
+    }
+    return response.json();
+  } catch (err: any) {
+    if (err.name === "TypeError" || err.message?.includes("fetch")) {
+      throw new Error("Unable to connect to backend server. Render free tier backend may be waking up (cold start, ~30–60s). Please retry shortly.");
+    }
+    throw err;
+  }
 }
 export default function Home() {
   const [tenantId, setTenantId] = useState<string | null>(null);

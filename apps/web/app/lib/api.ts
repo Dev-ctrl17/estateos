@@ -6,8 +6,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed with ${response.status}`);
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const data = await response.json();
+      message = data.message || data.error || message;
+    } catch {
+      const text = await response.text();
+      if (text) message = text;
+    }
+    throw new Error(message);
   }
   return response.json() as Promise<T>;
 }
